@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trivia de Educación Financiera</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Agregamos la librería html2canvas para poder descargar la imagen -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        .correct-answer {
+            background-color: #dcfce7; /* bg-green-100 */
+            border-color: #22c55e; /* border-green-500 */
+            color: #166534; /* text-green-800 */
+        }
+        .wrong-answer {
+            background-color: #fee2e2; /* bg-red-100 */
+            border-color: #ef4444; /* border-red-500 */
+            color: #991b1b; /* text-red-800 */
+        }
+        
+        /* Estilos para cuando el usuario decida imprimir el certificado */
+        @media print {
+            body { background-color: white !important; }
+            .no-print { display: none !important; }
+            .shadow-xl { box-shadow: none !important; border: none !important; }
+            .max-w-xl { max-width: 100% !important; }
+            #certificate { 
+                border: 8px solid #2563eb !important; 
+                border-radius: 16px; 
+                padding: 40px !important; 
+                margin: 0 !important;
+                box-shadow: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Contenedor Principal del Juego -->
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden relative">
+        
+        <!-- Encabezado -->
+        <div class="bg-blue-600 p-6 text-white text-center relative no-print">
+            <h1 class="text-2xl font-bold flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Trivia Financiera
+            </h1>
+            <p class="text-blue-100 text-sm mt-1">Pon a prueba tus conocimientos sobre el dinero</p>
+        </div>
+
+        <!-- Pantalla de Inicio -->
+        <div id="start-screen" class="p-8 text-center">
+            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+            </div>
+            <h2 class="text-xl font-bold text-slate-800 mb-2">¿Qué tanto sabes de finanzas?</h2>
+            <p class="text-slate-600 mb-6">Responde estas 3 preguntas y descubre si estás tomando las mejores decisiones financieras.</p>
+            
+            <!-- Campo para el nombre -->
+            <div class="mb-6 max-w-sm mx-auto text-left">
+                <label for="user-name" class="block text-sm font-medium text-slate-700 mb-1">Ingresa tu nombre para el certificado:</label>
+                <input type="text" id="user-name" placeholder="Ej. Juan Pérez" class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                <p id="name-error" class="hidden text-red-500 text-sm mt-1">Por favor, ingresa tu nombre para comenzar.</p>
+            </div>
+
+            <button onclick="startGame()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md transition-colors w-full sm:w-auto">
+                Comenzar Trivia
+            </button>
+        </div>
+
+        <!-- Pantalla del Juego -->
+        <div id="game-screen" class="hidden">
+            <!-- Barra de progreso -->
+            <div class="w-full bg-slate-200 h-1.5">
+                <div id="progress-bar" class="bg-blue-500 h-1.5 transition-all duration-300" style="width: 0%"></div>
+            </div>
+
+            <div class="p-6 sm:p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <span id="question-counter" class="text-sm font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">Pregunta 1 de 3</span>
+                    <span id="score-display" class="text-sm font-medium text-slate-500">Puntos: 0</span>
+                </div>
+
+                <h3 id="question-text" class="text-lg sm:text-xl font-semibold text-slate-800 mb-6 leading-relaxed">
+                    <!-- Pregunta inyectada por JS -->
+                </h3>
+
+                <div id="options-container" class="space-y-3">
+                    <!-- Opciones inyectadas por JS -->
+                </div>
+
+                <!-- Sección de Retroalimentación (Oculta por defecto) -->
+                <div id="feedback-container" class="hidden mt-6 animate-fade-in">
+                    <div id="feedback-box" class="p-4 rounded-lg mb-4 flex items-start gap-3">
+                        <div id="feedback-icon" class="mt-0.5"></div>
+                        <div>
+                            <h4 id="feedback-title" class="font-bold mb-1"></h4>
+                            <p id="feedback-explanation" class="text-sm leading-relaxed"></p>
+                        </div>
+                    </div>
+                    <button onclick="nextQuestion()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
+                        Siguiente Pregunta
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de Resultados -->
+        <div id="results-screen" class="hidden p-8 text-center">
+            <div class="no-print">
+                <div id="result-icon-container" class="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <!-- Icono inyectado por JS -->
+                </div>
+                <h2 id="result-title" class="text-2xl font-bold text-slate-800 mb-2">¡Trivia Completada!</h2>
+                <p class="text-slate-600 mb-6">Obtuviste <span id="final-score" class="font-bold text-blue-600 text-lg">0</span> de 3 respuestas correctas.</p>
+                
+                <p id="result-message" class="text-slate-700 font-medium mb-8 bg-slate-50 p-4 rounded-lg border border-slate-100"></p>
+            </div>
+
+            <!-- Certificado -->
+            <div id="certificate" class="bg-white border-8 border-blue-50 p-8 mt-2 rounded-xl text-center relative mb-8">
+                <div class="absolute top-0 left-0 w-full h-full border-2 border-blue-200 rounded-lg pointer-events-none" style="margin: 4px; width: calc(100% - 8px); height: calc(100% - 8px);"></div>
+                <h3 class="text-3xl font-serif text-blue-800 font-bold mb-4">Certificado de Participación</h3>
+                <p class="text-slate-600 text-lg mb-2">Se otorga el presente reconocimiento a:</p>
+                <p id="cert-name" class="text-4xl font-bold text-slate-800 mb-4 italic font-serif py-2 border-b-2 border-slate-200 inline-block min-w-[80%]"></p>
+                <p class="text-slate-600 text-lg">Por haber completado con éxito la Trivia de Educación Financiera.</p>
+                <div class="mt-6 flex justify-center items-center gap-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+                    <div class="text-left">
+                        <p class="text-sm text-slate-500 uppercase tracking-wider">Puntuación Final</p>
+                        <p class="font-bold text-blue-600 text-xl"><span id="cert-score"></span> / 3</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones Finales actualizados con opción de Descarga -->
+            <div class="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 no-print">
+                <button onclick="downloadCertificate()" id="download-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-5 rounded-lg shadow-md transition-colors w-full sm:w-auto flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    Descargar Imagen
+                </button>
+                <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-5 rounded-lg shadow-md transition-colors w-full sm:w-auto flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    Imprimir / PDF
+                </button>
+                <button onclick="location.reload()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-5 rounded-lg shadow-md transition-colors w-full sm:w-auto flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    Jugar de nuevo
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Datos de la trivia basados en el requerimiento del usuario
+        const questionsData = [
+            {
+                question: "Guardar el dinero en la casa (por ejemplo, en una alcancía o debajo del colchón) en lugar de hacerlo en una cuenta bancaria es un ejemplo de:",
+                options: [
+                    "A) Ahorro formal.",
+                    "B) Ahorro informal.",
+                    "C) Inversión segura."
+                ],
+                correctIndex: 1, // B) Ahorro informal
+                explanation: "Aunque muchas personas tienen el hábito de ahorrar, hacerlo en casa es un ahorro informal que no genera rendimientos y tiene riesgos (robo, pérdida o devaluación por la inflación)."
+            },
+            {
+                question: "El dinero que utilizas cuando compras algo con una tarjeta de crédito es:",
+                options: [
+                    "A) Un dinero extra que te regala el banco.",
+                    "B) Una extensión de tu salario.",
+                    "C) Dinero prestado que debes devolver."
+                ],
+                correctIndex: 2, // C) Dinero prestado...
+                explanation: "Una tarjeta de crédito no es dinero extra, es una línea de crédito donde la entidad financiera te presta un dinero para comprar hoy y pagar después (a menudo con intereses si no pagas a tiempo)."
+            },
+            {
+                question: "Las plataformas de apuestas deportivas o parleys que prometen dinero rápido son en realidad:",
+                options: [
+                    "A) Un negocio seguro para volverse rico.",
+                    "B) Una forma recomendada de ahorrar para el futuro.",
+                    "C) Un juego de azar que puede causar una grave adicción."
+                ],
+                correctIndex: 2, // C) Un juego de azar...
+                explanation: "Prometen riqueza instantánea, pero operan bajo la lógica de los juegos de azar y pueden desencadenar ludopatía, un vicio muy peligroso que puede arruinar tus finanzas personales."
+            }
+        ];
+
+        // Iconos SVG
+        const iconCorrect = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>`;
+        const iconWrong = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`;
+
+        // Variables de estado
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let hasAnswered = false;
+        let playerName = ""; // Nueva variable para guardar el nombre
+
+        // Elementos del DOM
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const questionCounter = document.getElementById('question-counter');
+        const scoreDisplay = document.getElementById('score-display');
+        const progressBar = document.getElementById('progress-bar');
+        const feedbackContainer = document.getElementById('feedback-container');
+        const feedbackBox = document.getElementById('feedback-box');
+        const feedbackIcon = document.getElementById('feedback-icon');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackExplanation = document.getElementById('feedback-explanation');
+
+        function startGame() {
+            const nameInput = document.getElementById('user-name');
+            const nameError = document.getElementById('name-error');
+            
+            // Validar que el nombre no esté vacío
+            if (nameInput.value.trim() === "") {
+                nameError.classList.remove('hidden');
+                nameInput.classList.add('border-red-500');
+                nameInput.focus();
+                return;
+            }
+            
+            // Guardar nombre y limpiar errores
+            playerName = nameInput.value.trim();
+            nameError.classList.add('hidden');
+            nameInput.classList.remove('border-red-500');
+
+            startScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            // Resetear estado de la pregunta
+            hasAnswered = false;
+            feedbackContainer.classList.add('hidden');
+            optionsContainer.innerHTML = '';
+            
+            const currentQuestion = questionsData[currentQuestionIndex];
+            
+            // Actualizar UI general
+            questionText.textContent = currentQuestion.question;
+            questionCounter.textContent = `Pregunta ${currentQuestionIndex + 1} de ${questionsData.length}`;
+            progressBar.style.width = `${((currentQuestionIndex) / questionsData.length) * 100}%`;
+
+            // Crear botones de opciones
+            currentQuestion.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = `option-btn w-full text-left p-4 sm:p-5 border-2 border-slate-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 font-medium text-slate-700`;
+                button.textContent = option;
+                button.onclick = () => selectAnswer(index, button);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function selectAnswer(selectedIndex, selectedButton) {
+            if (hasAnswered) return;
+            hasAnswered = true;
+
+            const currentQuestion = questionsData[currentQuestionIndex];
+            const isCorrect = selectedIndex === currentQuestion.correctIndex;
+            const allButtons = optionsContainer.querySelectorAll('button');
+
+            // Deshabilitar todos los botones
+            allButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('cursor-not-allowed', 'opacity-80');
+                btn.classList.remove('hover:border-blue-400', 'hover:bg-blue-50');
+            });
+
+            // Estilizar el botón correcto y el seleccionado (si es incorrecto)
+            allButtons[currentQuestion.correctIndex].classList.add('correct-answer');
+            allButtons[currentQuestion.correctIndex].classList.remove('border-slate-200');
+
+            if (isCorrect) {
+                score++;
+                scoreDisplay.textContent = `Puntos: ${score}`;
+                setupFeedback(true, currentQuestion.explanation);
+            } else {
+                selectedButton.classList.add('wrong-answer');
+                selectedButton.classList.remove('border-slate-200');
+                setupFeedback(false, currentQuestion.explanation);
+            }
+
+            // Mostrar caja de retroalimentación
+            feedbackContainer.classList.remove('hidden');
+            
+            // Auto-scroll suave para móviles
+            setTimeout(() => {
+                feedbackContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+
+        function setupFeedback(isCorrect, explanation) {
+            feedbackBox.className = `p-4 rounded-lg mb-4 flex items-start gap-3 ${isCorrect ? 'bg-green-50 text-green-900 border border-green-200' : 'bg-red-50 text-red-900 border border-red-200'}`;
+            feedbackIcon.innerHTML = isCorrect ? iconCorrect : iconWrong;
+            feedbackIcon.className = isCorrect ? 'text-green-600' : 'text-red-600';
+            feedbackTitle.textContent = isCorrect ? '¡Respuesta Correcta!' : 'Respuesta Incorrecta';
+            feedbackExplanation.textContent = explanation;
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questionsData.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            gameScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+            
+            document.getElementById('final-score').textContent = score;
+            
+            // Llenar datos del certificado
+            document.getElementById('cert-name').textContent = playerName;
+            document.getElementById('cert-score').textContent = score;
+            
+            const resultIconContainer = document.getElementById('result-icon-container');
+            const resultMessage = document.getElementById('result-message');
+            
+            if (score === 3) {
+                resultIconContainer.className = "w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 bg-green-100 text-green-600";
+                resultIconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m8 7 4-4 4 4"/><path d="M20 21H4"/><path d="M12 21v-2"/></svg>`;
+                resultMessage.textContent = "¡Excelente! Tienes muy claros los conceptos básicos de finanzas personales. ¡Sigue así!";
+            } else if (score === 2) {
+                resultIconContainer.className = "w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 bg-yellow-100 text-yellow-600";
+                resultIconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>`;
+                resultMessage.textContent = "¡Buen trabajo! Conoces bien el tema, aunque hay un pequeño detalle por reforzar.";
+            } else {
+                resultIconContainer.className = "w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 bg-blue-100 text-blue-600";
+                resultIconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`;
+                resultMessage.textContent = "¡Buena oportunidad para aprender! Repasa las explicaciones de las preguntas, la educación financiera es clave para el futuro.";
+            }
+        }
+
+        // Función para descargar el certificado como imagen PNG
+        function downloadCertificate() {
+            const certElement = document.getElementById('certificate');
+            const downloadBtn = document.getElementById('download-btn');
+            const originalText = downloadBtn.innerHTML;
+
+            // Cambiar estado del botón a "Cargando"
+            downloadBtn.innerHTML = 'Generando imagen...';
+            downloadBtn.disabled = true;
+            downloadBtn.classList.add('opacity-70', 'cursor-not-allowed');
+
+            // Retraso ligero para permitir que la UI se actualice
+            setTimeout(() => {
+                html2canvas(certElement, {
+                    scale: 2, // Mayor calidad para que el texto se vea nítido
+                    backgroundColor: "#ffffff",
+                }).then(canvas => {
+                    // Crear un enlace temporal para forzar la descarga
+                    const link = document.createElement('a');
+                    const safeName = playerName.replace(/[^a-zA-Z0-9]/g, '_'); // Nombre sin caracteres extraños
+                    link.download = `Certificado_Finanzas_${safeName}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+
+                    // Restaurar el botón a la normalidad
+                    downloadBtn.innerHTML = originalText;
+                    downloadBtn.disabled = false;
+                    downloadBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+                }).catch(err => {
+                    console.error("Error al generar la imagen:", err);
+                    downloadBtn.innerHTML = originalText;
+                    downloadBtn.disabled = false;
+                    downloadBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+                    alert("Lo sentimos, hubo un problema al generar la imagen. Puedes intentar usar la opción de Imprimir/PDF.");
+                });
+            }, 100);
+        }
+    </script>
+</body>
+</html>
